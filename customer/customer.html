@@ -1,0 +1,138 @@
+﻿<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>餐廳點餐系統 - 顧客端</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: #f8f9fa; color: #333; }
+        h1 { text-align: center; color: #d9534f; }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .item:hover { transform: translateY(-5px); }
+        .item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .cart {
+            margin: 40px auto;
+            max-width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #eee;
+        }
+        .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        button {
+            cursor: pointer;
+            background: #ffc107;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            width: 100%;
+        }
+        button:hover { background: #e0a800; }
+        .submit-btn { background: #007bff; color: white; margin-top: 15px; font-size: 1.1em; }
+        .submit-btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h1>🍔 美味快速點餐</h1>
+
+    <div class="menu-grid">
+        <div class="item">
+            <img src="./images/f2.png" alt="經典漢堡">
+            <h3>經典漢堡</h3>
+            <p>價格：120</p>
+            <button onclick="addToCart('經典漢堡', 120)">加入購物車</button>
+        </div>
+
+        <div class="item">
+            <img src="./images/f5.png" alt="金黃薯條">
+            <h3>金黃薯條</h3>
+            <p>價格：60</p>
+            <button onclick="addToCart('金黃薯條', 60)">加入購物車</button>
+        </div>
+    </div>
+
+    <div class="cart">
+        <h2>🧾 您的購物車</h2>
+        <div id="cart-list"></div>
+        <hr>
+        <p style="font-size: 1.2em; text-align: right;"><strong>總金額 $<span id="total-price">0</span></strong></p>
+        <button class="submit-btn" onclick="submitOrder()">確認並送出訂單</button>
+    </div>
+
+    <script>
+        let cart = [];
+        const API_BASE = '/api/orders.php';
+
+        function addToCart(name, price) {
+            cart.push({ name, price });
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-list');
+            const totalDisp = document.getElementById('total-price');
+            list.innerHTML = '';
+
+            if (cart.length === 0) {
+                list.innerHTML = '<p style="color: #999;">尚未加入任何餐點</p>';
+            }
+
+            let total = 0;
+            cart.forEach((item, index) => {
+                list.innerHTML += `
+                    <div class="cart-item">
+                        <span>${item.name}</span>
+                        <span>$${item.price}</span>
+                    </div>`;
+                total += item.price;
+            });
+            totalDisp.innerText = total;
+        }
+
+        async function submitOrder() {
+            if (cart.length === 0) return alert("購物車目前是空的！");
+
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: cart })
+                });
+
+                if (!res.ok) throw new Error('request failed');
+                await res.json().catch(() => ({}));
+
+                alert("訂單已送出！");
+                cart = [];
+                renderCart();
+            } catch (err) {
+                alert("送出失敗，請稍後再試");
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

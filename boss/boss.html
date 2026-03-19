@@ -1,0 +1,68 @@
+﻿<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>餐廳點餐系統 - 後台廚房</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .order-card { border-left: 5px solid #ffc107; background: #fff; margin-bottom: 15px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .completed { border-left: 5px solid #28a745; opacity: 0.6; }
+        .btn-done { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🍳 廚房後台訂單系統</h1>
+    <div id="order-container"></div>
+
+    <script>
+        const API_BASE = '/api/orders.php';
+
+        async function loadOrders() {
+            const container = document.getElementById('order-container');
+            try {
+                const res = await fetch(`${API_BASE}?status=pending`);
+                if (!res.ok) throw new Error('request failed');
+                const orders = await res.json();
+
+                container.innerHTML = '';
+
+                orders.reverse().forEach(order => {
+                    if (order.status === 'completed') return;
+
+                    const itemNames = order.items.map(i => i.name).join(', ');
+                    container.innerHTML += `
+                        <div class="order-card" id="order-${order.id}">
+                            <h3>訂單編號: #${order.id.toString().slice(-4)} <small>(${order.time})</small></h3>
+                            <p>內容: <strong>${itemNames}</strong></p>
+                            <button class="btn-done" onclick="completeOrder(${order.id})">完成出餐</button>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                container.innerHTML = '<p>無法載入訂單，請稍後再試。</p>';
+                console.error(err);
+            }
+        }
+
+        async function completeOrder(orderId) {
+            try {
+                const res = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'complete', id: orderId })
+                });
+
+                if (!res.ok) throw new Error('request failed');
+                await res.json().catch(() => ({}));
+                loadOrders();
+            } catch (err) {
+                alert('更新失敗，請稍後再試');
+                console.error(err);
+            }
+        }
+
+        setInterval(loadOrders, 3000);
+        loadOrders();
+    </script>
+</body>
+</html>
