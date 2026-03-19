@@ -8,19 +8,24 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS menu_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    price INT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NULL,
     status ENUM('pending', 'completed') NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_orders_status (status),
-    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
-        ON DELETE SET NULL ON UPDATE CASCADE
+    total_amount INT NOT NULL DEFAULT 0,
+    INDEX idx_orders_status (status)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
+    item_id INT NULL,
     item_name VARCHAR(100) NOT NULL,
     price INT NOT NULL,
     qty INT NOT NULL DEFAULT 1,
@@ -28,3 +33,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+INSERT INTO menu_items (id, name, price) VALUES
+(1, '經典漢堡', 120),
+(2, '金黃薯條', 60)
+ON DUPLICATE KEY UPDATE name=VALUES(name), price=VALUES(price);
