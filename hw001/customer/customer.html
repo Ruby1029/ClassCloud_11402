@@ -7,55 +7,21 @@
     <style>
         body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: #f8f9fa; color: #333; }
         h1 { text-align: center; color: #d9534f; }
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .item {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.2s;
-        }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; max-width: 800px; margin: 0 auto; }
+        .item { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; transition: transform 0.2s; }
         .item:hover { transform: translateY(-5px); }
-        .item img {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .cart {
-            margin: 40px auto;
-            max-width: 600px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            border: 2px solid #eee;
-        }
+        .item img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+        .qty-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0 12px; }
+        .qty-row select { padding: 4px 8px; border-radius: 6px; }
+        .cart { margin: 40px auto; max-width: 600px; background: #fff; padding: 20px; border-radius: 12px; border: 2px solid #eee; }
         .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        button {
-            cursor: pointer;
-            background: #ffc107;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: bold;
-            width: 100%;
-        }
+        button { cursor: pointer; background: #ffc107; color: #333; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; width: 100%; }
         button:hover { background: #e0a800; }
         .submit-btn { background: #007bff; color: white; margin-top: 15px; font-size: 1.1em; }
         .submit-btn:hover { background: #0056b3; }
     </style>
 </head>
 <body>
-
     <h1>🍔 美味快速點餐</h1>
 
     <div class="menu-grid">
@@ -63,14 +29,30 @@
             <img src="./images/f2.png" alt="經典漢堡">
             <h3>經典漢堡</h3>
             <p>價格：120</p>
-            <button onclick="addToCart('經典漢堡', 120)">加入購物車</button>
+            <div class="qty-row">
+                <label for="qty-burger">數量</label>
+                <select id="qty-burger">
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                </select>
+            </div>
+            <button onclick="addToCart(1, '經典漢堡', 120, getQty('qty-burger'))">加入購物車</button>
         </div>
 
         <div class="item">
             <img src="./images/f5.png" alt="金黃薯條">
             <h3>金黃薯條</h3>
             <p>價格：60</p>
-            <button onclick="addToCart('金黃薯條', 60)">加入購物車</button>
+            <div class="qty-row">
+                <label for="qty-fries">數量</label>
+                <select id="qty-fries">
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                </select>
+            </div>
+            <button onclick="addToCart(2, '金黃薯條', 60, getQty('qty-fries'))">加入購物車</button>
         </div>
     </div>
 
@@ -84,10 +66,21 @@
 
     <script>
         let cart = [];
-        const API_BASE = '/api/orders.php';
+        const API_BASE = '/homework001/api/orders.php';
 
-        function addToCart(name, price) {
-            cart.push({ name, price });
+        function getQty(id) {
+            const el = document.getElementById(id);
+            const val = el ? parseInt(el.value, 10) : 1;
+            return Number.isFinite(val) && val > 0 ? val : 1;
+        }
+
+        function addToCart(itemId, name, price, qty) {
+            const existing = cart.find(i => i.item_id === itemId);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                cart.push({ item_id: itemId, name, price, qty });
+            }
             renderCart();
         }
 
@@ -101,13 +94,14 @@
             }
 
             let total = 0;
-            cart.forEach((item, index) => {
+            cart.forEach((item) => {
+                const lineTotal = item.price * item.qty;
                 list.innerHTML += `
                     <div class="cart-item">
-                        <span>${item.name}</span>
-                        <span>$${item.price}</span>
+                        <span>${item.name} x ${item.qty}</span>
+                        <span>$${lineTotal}</span>
                     </div>`;
-                total += item.price;
+                total += lineTotal;
             });
             totalDisp.innerText = total;
         }

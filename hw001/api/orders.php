@@ -23,7 +23,8 @@ if ($method === 'GET') {
     }
 
     $sql = "
-        SELECT o.id, o.status, o.created_at, i.item_name, i.price, i.qty
+        SELECT o.id, o.status, o.created_at, o.total_amount,
+               i.item_id, i.item_name, i.price, i.qty
         FROM orders o
         LEFT JOIN order_items i ON i.order_id = o.id
         {$where}
@@ -42,11 +43,13 @@ if ($method === 'GET') {
                 'id' => $id,
                 'status' => $row['status'],
                 'time' => date('H:i:s', strtotime($row['created_at'])),
+                'total' => (int)$row['total_amount'],
                 'items' => [],
             ];
         }
         if ($row['item_name'] !== null) {
             $orders[$id]['items'][] = [
+                'item_id' => (int)$row['item_id'],
                 'name' => $row['item_name'],
                 'price' => (int)$row['price'],
                 'qty' => (int)$row['qty'],
@@ -85,20 +88,35 @@ if (!is_array($items) || count($items) === 0) {
 
 $pdo->beginTransaction();
 try {
-    $pdo->prepare('INSERT INTO orders (status, created_at) VALUES (?, NOW())')
-        ->execute(['pending']);
+    $pdo->prepare('INSERT INTO orders (status, created_at, total_amount) VALUES (?, NOW(), ?)')
+        ->execute(['pending', 0]);
     $orderId = (int)$pdo->lastInsertId();
 
-    $stmt = $pdo->prepare('INSERT INTO order_items (order_id, item_name, price, qty) VALUES (?, ?, ?, ?)');
+    $stmtItem = $pdo->prepare('INSERT INTO order_items (order_id, item_id, item_name, price, qty) VALUES (?, ?, ?, ?, ?)');
+    $stmtMenu = $pdo->prepare('SELECT name, price FROM menu_items WHERE id = ?');
+
+    $total = 0;
     foreach ($items as $item) {
-        $name = isset($item['name']) ? (string)$item['name'] : '';
-        $price = isset($item['price']) ? (int)$item['price'] : 0;
+        $itemId = isset($item['item_id']) ? (int)$item['item_id'] : 0;
         $qty = isset($item['qty']) ? (int)$item['qty'] : 1;
-        if ($name === '' || $price <= 0 || $qty <= 0) {
+        if ($itemId <= 0 || $qty <= 0) {
             continue;
         }
-        $stmt->execute([$orderId, $name, $price, $qty]);
+
+        $stmtMenu->execute([$itemId]);
+        $menu = $stmtMenu->fetch();
+        if (!$menu) {
+            continue;
+        }
+
+        $name = (string)$menu['name'];
+        $price = (int)$menu['price'];
+        $stmtItem->execute([$orderId, $itemId, $name, $price, $qty]);
+        $total += $price * $qty;
     }
+
+    $pdo->prepare('UPDATE orders SET total_amount = ? WHERE id = ?')
+        ->execute([$total, $orderId]);
 
     $pdo->commit();
     json_response(201, ['ok' => true, 'id' => $orderId]);

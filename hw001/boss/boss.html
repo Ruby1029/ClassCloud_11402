@@ -15,7 +15,7 @@
     <div id="order-container"></div>
 
     <script>
-        const API_BASE = '/api/orders.php';
+        const API_BASE = '/homework001/api/orders.php';
 
         async function loadOrders() {
             const container = document.getElementById('order-container');
@@ -29,7 +29,9 @@
                 orders.reverse().forEach(order => {
                     if (order.status === 'completed') return;
 
-                    const itemNames = order.items.map(i => i.name).join(', ');
+                    const itemNames = order.items
+                        .map(i => `${i.name} x ${i.qty || 1}`)
+                        .join(', ');
                     container.innerHTML += `
                         <div class="order-card" id="order-${order.id}">
                             <h3>訂單編號: #${order.id.toString().slice(-4)} <small>(${order.time})</small></h3>
